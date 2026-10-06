@@ -1,7 +1,7 @@
 # A short-lived GitHub Mac or Windows machine you can see and control from your Mac,
 # for hands-on tests of the buyer flow. Reached through Tailscale (private network).
 # Start: gh workflow run remote-desktop.yml -f os=macos -f minutes=60
-# Stop early: gh run cancel <run-id>
+# Stop early: gh run cancel <run-id>  (Step Guide is unpacked on the Desktop; Kit test keys: tools/license.py in ai-assistant-kit)
 # Secrets: TAILSCALE_GITHUB_AUTH_KEY (Tailscale auth key, ephemeral), RD_PASSWORD (login password for the remote user).
 name: remote-desktop
 
@@ -66,6 +66,17 @@ jobs:
           Set-Service sshd -StartupType Automatic; Start-Service sshd
           Write-Output "Connect: Windows App -> $(tailscale ip -4)  user: runneradmin  (ssh runneradmin@$(tailscale ip -4))"
 
+      - name: Put Step Guide on the Desktop (Chrome → chrome://extensions → Developer mode → Load unpacked)
+        shell: bash
+        continue-on-error: true
+        run: |
+          curl -fsSL https://kit-get.jhilmil.workers.dev/stepguide/step-guide.zip -o step-guide.zip
+          mkdir -p ~/Desktop/step-guide && unzip -oq step-guide.zip -d ~/Desktop/step-guide
+          echo "Step Guide: ~/Desktop/step-guide"
+
       - name: Keep the machine on
         shell: bash
-        run: sleep $(( ${{ inputs.minutes }} * 60 ))
+        # Short sleeps: one long sleep ignores a cancel on Windows and the run stays "in progress".
+        run: |
+          end=$(( SECONDS + ${{ inputs.minutes }} * 60 ))
+          while [ $SECONDS -lt $end ]; do sleep 15; done
