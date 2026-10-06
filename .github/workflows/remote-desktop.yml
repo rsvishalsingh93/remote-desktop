@@ -37,16 +37,20 @@ jobs:
           RD_PASSWORD: ${{ secrets.RD_PASSWORD }}
         run: |
           sw_vers -productVersion
-          # Newer runner images refuse "dscl -passwd" without the old password; sysadminctl as root does not need it.
-          sudo sysadminctl -resetPasswordFor runner -newPassword "$RD_PASSWORD" 2>&1 | grep -v "secureToken" || true
-          dscl /Local/Default -authonly runner "$RD_PASSWORD" || { echo "::error::Could not set the runner password"; exit 1; }
+          # macOS 26 runner images: "runner" has a secure token, so its password can't be reset without the old one.
+          # Screen Sharing logs in as a new admin user "tester" instead (a clean account, like a buyer's).
+          sudo sysadminctl -addUser tester -fullName "Tester" -password "$RD_PASSWORD" -admin
+          sudo createhomedir -c -u tester >/dev/null
+          dscl /Local/Default -authonly tester "$RD_PASSWORD" || { echo "::error::Could not create the tester user"; exit 1; }
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-            -activate -configure -access -on -users runner -privs -all -restart -agent -menu
+            -activate -configure -access -on -users runner,tester -privs -all -restart -agent -menu
           sudo launchctl enable system/com.apple.screensharing
           sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
           sudo systemsetup -setremotelogin on || sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist
           mkdir -p ~/.ssh && cat authorized_keys >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
-          echo "Connect: Screen Sharing -> $(tailscale ip -4)  user: runner  (ssh runner@$(tailscale ip -4))"
+          sudo mkdir -p /Users/tester/.ssh && sudo cp authorized_keys /Users/tester/.ssh/authorized_keys
+          sudo chown -R tester /Users/tester/.ssh && sudo chmod 700 /Users/tester/.ssh && sudo chmod 600 /Users/tester/.ssh/authorized_keys
+          echo "Connect: Screen Sharing -> $(tailscale ip -4)  user: tester  (ssh tester@$(tailscale ip -4))"
 
       - name: Enable Remote Desktop (Windows)
         if: inputs.os == 'windows'

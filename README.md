@@ -10,7 +10,7 @@ gh run list -R rsvishalsingh93/remote-desktop -L 1
 ```
 Open the run log. The step "Enable Screen Sharing" or "Enable Remote Desktop" shows the address and the user name.
 
-- Mac: open Screen Sharing and connect to the address. User: `runner`.
+- Mac: open Screen Sharing and connect to the address. User: `tester` (choose "Log in as yourself" if asked).
 - Windows: open Windows App and connect to the address. User: `runneradmin`.
 - Password: the `RD_PASSWORD` secret.
 - Commands: `ssh -i ~/.ssh/remote_desktop_ed25519 <user>@<address>` (public key in `authorized_keys`).
