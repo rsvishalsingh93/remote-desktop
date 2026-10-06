@@ -1,0 +1,57 @@
+# A short-lived GitHub Mac or Windows machine you can see and control from your Mac,
+# for hands-on tests of the buyer flow. Reached through Tailscale (private network).
+# Start: gh workflow run remote-desktop.yml -f os=macos -f minutes=60
+# Stop early: gh run cancel <run-id>
+# Secrets: TAILSCALE_GITHUB_AUTH_KEY (Tailscale auth key, ephemeral), RD_PASSWORD (login password for the remote user).
+name: remote-desktop
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: macos or windows
+        type: choice
+        options: [macos, windows]
+        default: macos
+      minutes:
+        description: How long to keep the machine on (max 340)
+        type: number
+        default: 60
+
+jobs:
+  desktop:
+    runs-on: ${{ inputs.os == 'windows' && 'windows-latest' || 'macos-latest' }}
+    timeout-minutes: 350
+    steps:
+      - name: Join Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_GITHUB_AUTH_KEY }}
+          hostname: gha-${{ inputs.os }}-${{ github.run_id }}
+
+      - name: Enable Screen Sharing (macOS)
+        if: inputs.os == 'macos'
+        env:
+          RD_PASSWORD: ${{ secrets.RD_PASSWORD }}
+        run: |
+          sudo dscl . -passwd /Users/runner "$RD_PASSWORD"
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate -configure -access -on -users runner -privs -all -restart -agent -menu
+          sudo launchctl enable system/com.apple.screensharing
+          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
+          echo "Connect: Screen Sharing -> $(tailscale ip -4)  user: runner"
+
+      - name: Enable Remote Desktop (Windows)
+        if: inputs.os == 'windows'
+        shell: pwsh
+        env:
+          RD_PASSWORD: ${{ secrets.RD_PASSWORD }}
+        run: |
+          Set-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 0
+          Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'
+          Set-LocalUser -Name runneradmin -Password (ConvertTo-SecureString $env:RD_PASSWORD -AsPlainText -Force)
+          Write-Output "Connect: Windows App -> $(tailscale ip -4)  user: runneradmin"
+
+      - name: Keep the machine on
+        shell: bash
+        run: sleep $(( ${{ inputs.minutes }} * 60 ))
