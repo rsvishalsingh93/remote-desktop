@@ -1,0 +1,40 @@
+# Facts about the current GitHub Mac image that decide how remote screen access can work (no secrets needed).
+# Run: gh workflow run mac-diagnose.yml -R rsvishalsingh93/remote-desktop -f runner=macos-latest
+# Result: the log, and a screenshot in the run's artifacts (shows whether the machine has a real screen).
+name: mac-diagnose
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: macos-latest, macos-26, macos-26-intel or macos-15
+        type: choice
+        options: [macos-latest, macos-26, macos-26-intel, macos-15]
+        default: macos-latest
+
+jobs:
+  diagnose:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Facts
+        run: |
+          set +e
+          echo "== macOS"; sw_vers; uname -m
+          echo "== SIP (needs 'disabled' to write the system privacy database)"; csrutil status
+          TCC="/Library/Application Support/com.apple.TCC/TCC.db"
+          echo "== system TCC.db readable by root"; sudo sqlite3 "$TCC" "select count(*) from access;"
+          echo "== screen recording grants"; sudo sqlite3 "$TCC" "select client, auth_value from access where service='kTCCServiceScreenCapture';"
+          echo "== TCC.db write test (insert + delete a dummy row)"
+          sudo sqlite3 "$TCC" "insert or replace into access (service, client, client_type, auth_value, auth_reason, auth_version, flags) values ('kTCCServiceScreenCapture','com.example.diagnose',0,0,4,1,0);" && echo "write OK"
+          sudo sqlite3 "$TCC" "delete from access where client='com.example.diagnose';"
+          echo "== console user"; stat -f%Su /dev/console
+          echo "== displays"; system_profiler SPDisplaysDataType | sed -n 1,30p
+          echo "== WindowServer"; ps -axo command | grep -m1 WindowServer
+          echo "== screenshot (bash has the screen-recording grant)"; screencapture -x /tmp/screen.png; ls -l /tmp/screen.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screen-${{ inputs.runner }}
+          path: /tmp/screen.png
+          if-no-files-found: warn
