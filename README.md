@@ -13,9 +13,9 @@ It starts the workflow, waits until remote access is on (2–5 minutes), and pri
 | | Mac | Windows |
 |---|---|---|
 | App on your Mac | Screen Sharing (built in). `start.sh` opens `vnc://<address>`; or Finder → Go → Connect to Server (⌘K) | [Windows App](https://apps.apple.com/app/windows-app/id1295203466) → **+** → **Add PC** → PC name = address |
-| User | `tester` (if asked, choose **Log in as yourself**) | `runneradmin` |
-| Password | the `RD_PASSWORD` secret | the `RD_PASSWORD` secret |
-| Commands | `ssh -i ~/.ssh/remote_desktop_ed25519 tester@<address>` | `ssh -i ~/.ssh/remote_desktop_ed25519 runneradmin@<address>` (Windows PowerShell 5.1, like a buyer's) |
+| User | none: password only | `runneradmin` |
+| Password | the **first 8 characters** of `RD_PASSWORD` | the `RD_PASSWORD` secret |
+| Commands | `ssh -i ~/.ssh/remote_desktop_ed25519 runner@<address>` | `ssh -i ~/.ssh/remote_desktop_ed25519 runneradmin@<address>` (Windows PowerShell 5.1, like a buyer's) |
 
 On the Desktop of both: `step-guide/` (Chrome → `chrome://extensions` → Developer mode → Load unpacked).
 
@@ -32,16 +32,20 @@ A run also stops by itself after the minutes you asked for. Hosted runners are f
   capital letters, small letters, numbers and a symbol; Windows rejects weaker ones).
 
 ## Why it is built this way (facts, with sources)
-- **Mac user `tester`, not `runner`.** On the macOS 26 runner image, `runner` has a SecureToken, so root can't set its
-  password without the old one: `dscl -passwd` fails with `eDSAuthFailed`, `sysadminctl -resetPasswordFor` says
-  "Operation is not permitted without secure token unlock" (seen 6 Oct 2026, macOS 26.6.2). A new local admin
-  account avoids it; the same approach: [prateeknot/macos-cloud](https://github.com/prateeknot/macos-cloud)
-  (`.github/workflows/macos.yml`). Image facts: [macOS 26 runners GA](https://github.blog/changelog/2026-02-26-macos-26-is-now-generally-available-for-github-hosted-runners/).
-- **Screen Sharing as another user** than the one at the console: macOS asks "Share Display" or "Log in as yourself";
-  "Log in as yourself" opens a separate session ([Lehigh: Connect to another Mac](https://lehigh.atlassian.net/wiki/spaces/LKB/pages/26679969/Connect+to+another+Mac+from+macOS)).
+- **Mac: VNC password, no user name.** Apple: "In macOS 12.1 or later, Screen Sharing can't be enabled by the
+  `kickstart` command-line tool" ([Apple Remote Desktop guide](https://support.apple.com/en-gw/guide/remote-desktop/apd8b1c65bd/mac));
+  only MDM or System Settings can, and a runner has neither. A user-name login then fails with "Screen Sharing is not
+  permitted on <address>" (seen 6 Oct 2026). kickstart can still turn on the **legacy VNC password**
+  (`-setvnclegacy -vnclegacy yes -setvncpw`), which shares the desktop that is logged in (user `runner`). This is the
+  method of [prateeknot/macos-cloud](https://github.com/prateeknot/macos-cloud) (`.github/workflows/macos.yml`, macOS 26
+  runners). VNC passwords use only the first 8 characters. Risk accepted by the owner (6 Oct 2026): password-only
+  full control, but reachable only inside our Tailscale network, on a throwaway machine that stops by itself.
+- **Why not reset `runner`'s password.** On the macOS 26 image `runner` has a SecureToken: `dscl -passwd` fails with
+  `eDSAuthFailed`, `sysadminctl -resetPasswordFor` says "Operation is not permitted without secure token unlock".
+  Image facts: [macOS 26 runners GA](https://github.blog/changelog/2026-02-26-macos-26-is-now-generally-available-for-github-hosted-runners/).
 - **Black screen fix.** A headless runner whose display sleeps or locks streams an empty picture (black, only the
   cursor). The workflow turns off sleep and the screen lock (`pmset`, `DisableScreenLock`), as macos-cloud does.
-  If it still shows black, that project also auto-logs the new user in at the console (`kcpassword`); add that only if needed.
+  If it still shows black, read macos-cloud's "Auto-login" and "diagnostics" steps before changing anything.
 - **Address from Tailscale, not the log.** GitHub shows a job's log only after it ends, so `start.sh` waits for the
   "Enable …" step to succeed and reads the address of `gha-<os>-<run id>` from `tailscale status`.
 - **Keep-alive loop of 15 s sleeps.** One long `sleep` ignores a cancel on Windows and the run stays "in progress".

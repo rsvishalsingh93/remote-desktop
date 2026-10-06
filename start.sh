@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Start a remote test computer and open it.
-#   ./start.sh macos [minutes]     -> opens Screen Sharing (vnc://<address>), user "tester"
+#   ./start.sh macos [minutes]     -> opens Screen Sharing (vnc://<address>), password = first 8 characters of RD_PASSWORD
 #   ./start.sh windows [minutes]   -> prints the address for Windows App, user "runneradmin"
 # Needs: gh (logged in), Tailscale running on this Mac. Stop early: ./stop.sh
 set -euo pipefail
@@ -34,7 +34,7 @@ ip=$(tailscale status | awk -v h="gha-$OS-$run" '$2==h {print $1}')
 [ -n "$ip" ] || { echo "Ready, but gha-$OS-$run is not in 'tailscale status' yet. Try again in a minute."; exit 1; }
 
 if [ "$OS" = macos ]; then
-  echo "Mac ready: $ip   user: tester   password: the RD_PASSWORD secret   ssh: ssh -i ~/.ssh/remote_desktop_ed25519 tester@$ip"
+  echo "Mac ready: $ip   password: the FIRST 8 characters of RD_PASSWORD (no user name)   ssh: ssh -i ~/.ssh/remote_desktop_ed25519 runner@$ip"
   open "vnc://$ip"
 else
   echo "Windows ready: $ip   user: runneradmin   password: the RD_PASSWORD secret"
