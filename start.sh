@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Start a remote test computer and open it.
 #   ./start.sh macos [minutes]        -> Apple Silicon Mac (1024x768 screen): connect with RustDesk to <address>:21118
-#   ./start.sh macos-intel [minutes]  -> Intel Mac (1920x1080 screen), same
+#   ./start.sh macos-intel [minutes]  -> Intel Mac (1920x1080); Dock/window-button clicks fail there (README)
 #   ./start.sh windows [minutes]   -> prints the address for Windows App, user "runneradmin"
 # Needs: gh (logged in), Tailscale running on this Mac. Stop early: ./stop.sh
 set -euo pipefail

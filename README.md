@@ -5,8 +5,8 @@ Use it to test software on a clean machine. The connection goes through Tailscal
 
 ## Start
 ```
-./start.sh macos 60          # Apple Silicon Mac for 60 minutes (max 340), screen 1024x768
-./start.sh macos-intel 60    # Intel Mac, screen 1920x1080 (more RAM)
+./start.sh macos 60          # Apple Silicon Mac for 60 minutes (max 340), screen 1024x768. USE THIS ONE.
+./start.sh macos-intel 60    # Intel Mac, screen 1920x1080: Dock and window-button clicks don't work (below)
 ./start.sh windows 60        # Windows
 ```
 It starts the workflow, waits until remote access is on (2–5 minutes), and prints the address and user.
@@ -62,7 +62,8 @@ workflow. Write what you found in this section.
 
 - **Mac SSH refused the key** (6 Oct 2026). Fixed: `~/.ssh` must be mode 700 (sshd ignores keys otherwise). Use
   `-o IdentitiesOnly=yes`, or ssh offers other keys first and the server stops with "Too many authentication failures".
-- **Mac: clicking a Dock icon does not start the app** (6 Oct 2026, RustDesk on macos-26-intel). Mouse, keyboard,
+- **Intel Mac only: clicking a Dock icon does not start the app** (6 Oct 2026, RustDesk on macos-26-intel). On the
+  Apple Silicon Mac (`macos`) everything works, Dock and window buttons included (tested 7 Oct 2026). Mouse, keyboard,
   menus and right-click work; macOS logs show RustDesk has Accessibility, PostEvent and ListenEvent allowed
   (`AUTHREQ_RESULT … authValue=2`). Window buttons (close, cancel) fail too; menus, right-click, typing and Finder's
   Go menu work. Tried without effect: slow single clicks (so not RustDesk issue #15878, click counting), and running
