@@ -36,7 +36,10 @@ jobs:
         env:
           RD_PASSWORD: ${{ secrets.RD_PASSWORD }}
         run: |
-          sudo dscl . -passwd /Users/runner "$RD_PASSWORD"
+          sw_vers -productVersion
+          # Newer runner images refuse "dscl -passwd" without the old password; sysadminctl as root does not need it.
+          sudo sysadminctl -resetPasswordFor runner -newPassword "$RD_PASSWORD" 2>&1 | grep -v "secureToken" || true
+          dscl /Local/Default -authonly runner "$RD_PASSWORD" || { echo "::error::Could not set the runner password"; exit 1; }
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on -users runner -privs -all -restart -agent -menu
           sudo launchctl enable system/com.apple.screensharing
