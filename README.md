@@ -64,7 +64,10 @@ workflow. Write what you found in this section.
   `-o IdentitiesOnly=yes`, or ssh offers other keys first and the server stops with "Too many authentication failures".
 - **Mac: clicking a Dock icon does not start the app** (6 Oct 2026, RustDesk on macos-26-intel). Mouse, keyboard,
   menus and right-click work; macOS logs show RustDesk has Accessibility, PostEvent and ListenEvent allowed
-  (`AUTHREQ_RESULT … authValue=2`). No documented cause found. Start apps with Spotlight (⌘ Space, name, Enter),
-  Finder → Go → Applications, or over SSH: `open -a Terminal`.
+  (`AUTHREQ_RESULT … authValue=2`). Window buttons (close, cancel) fail too; menus, right-click, typing and Finder's
+  Go menu work. Tried without effect: slow single clicks (so not RustDesk issue #15878, click counting), and running
+  RustDesk as the official `--server` LaunchAgent plus root `--service` LaunchDaemon (skyro777's setup). No documented
+  cause found. Use the keyboard and menus: open apps with Finder → Go or ⌘ Space; close a window ⌘ W; quit ⌘ Q;
+  cancel Esc; switch ⌘ Tab; or over SSH: `open -a Terminal`.
 - **No screenshots over SSH on the Mac**: `screencapture` says "could not create image from display" (the screen
   permission belongs to the workflow's `/bin/bash`, not to sshd). Take screenshots in a workflow step instead.
