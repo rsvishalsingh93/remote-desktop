@@ -16,7 +16,7 @@ It starts the workflow, waits until remote access is on (2–5 minutes), and pri
 | App on your Mac | [RustDesk](https://rustdesk.com) (`brew install --cask rustdesk`, once) → enter `<address>:21118` → Connect. `start.sh` opens it. Apple Screen Sharing does **not** work (see Why) | [Windows App](https://apps.apple.com/app/windows-app/id1295203466) → **+** → **Add PC** → PC name = address |
 | User | none: password only (RustDesk) | `runneradmin` |
 | Password | the `RD_PASSWORD` secret | the `RD_PASSWORD` secret |
-| Commands | `ssh -i ~/.ssh/remote_desktop_ed25519 -o IdentitiesOnly=yes runner@<address>` (not yet confirmed working on Mac, see When something fails) | `ssh -i ~/.ssh/remote_desktop_ed25519 -o IdentitiesOnly=yes runneradmin@<address>` (Windows PowerShell 5.1, like a buyer's) |
+| Commands | `ssh -i ~/.ssh/remote_desktop_ed25519 -o IdentitiesOnly=yes runner@<address>` | `ssh -i ~/.ssh/remote_desktop_ed25519 -o IdentitiesOnly=yes runneradmin@<address>` (Windows PowerShell 5.1, like a buyer's) |
 
 On the Desktop of both: `step-guide/` (Chrome → `chrome://extensions` → Developer mode → Load unpacked).
 
@@ -60,5 +60,11 @@ A run also stops by itself after the minutes you asked for. Hosted runners are f
 `gh run view <run-id> -R rsvishalsingh93/remote-desktop --log-failed`, then read the docs above before changing the
 workflow. Write what you found in this section.
 
-- **Mac SSH refused the key** (6 Oct 2026, `Permission denied (publickey…)` with the right key and `IdentitiesOnly`).
-  Cause not found yet; the workflow now also sets `~/.ssh` to 700. Check this on the next Mac run.
+- **Mac SSH refused the key** (6 Oct 2026). Fixed: `~/.ssh` must be mode 700 (sshd ignores keys otherwise). Use
+  `-o IdentitiesOnly=yes`, or ssh offers other keys first and the server stops with "Too many authentication failures".
+- **Mac: clicking a Dock icon does not start the app** (6 Oct 2026, RustDesk on macos-26-intel). Mouse, keyboard,
+  menus and right-click work; macOS logs show RustDesk has Accessibility, PostEvent and ListenEvent allowed
+  (`AUTHREQ_RESULT … authValue=2`). No documented cause found. Start apps with Spotlight (⌘ Space, name, Enter),
+  Finder → Go → Applications, or over SSH: `open -a Terminal`.
+- **No screenshots over SSH on the Mac**: `screencapture` says "could not create image from display" (the screen
+  permission belongs to the workflow's `/bin/bash`, not to sshd). Take screenshots in a workflow step instead.
