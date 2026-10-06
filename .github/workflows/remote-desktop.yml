@@ -1,7 +1,7 @@
 # A short-lived GitHub Mac or Windows machine you can see and control from your Mac,
 # for hands-on tests of the buyer flow. Reached through Tailscale (private network).
-# Start: gh workflow run remote-desktop.yml -f os=macos -f minutes=60
-# Stop early: gh run cancel <run-id>  (Step Guide is unpacked on the Desktop; Kit test keys: tools/license.py in ai-assistant-kit)
+# Start: ./start.sh macos 60   (or: gh workflow run remote-desktop.yml -f os=macos -f minutes=60)
+# Stop early: ./stop.sh  (Step Guide is unpacked on the Desktop; Kit test keys: tools/license.py in ai-assistant-kit)
 # Secrets: TAILSCALE_GITHUB_AUTH_KEY (Tailscale auth key, ephemeral), RD_PASSWORD (login password for the remote user).
 name: remote-desktop
 
@@ -44,6 +44,11 @@ jobs:
           dscl /Local/Default -authonly tester "$RD_PASSWORD" || { echo "::error::Could not create the tester user"; exit 1; }
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on -users runner,tester -privs -all -restart -agent -menu
+          # A headless runner whose display sleeps or locks streams a black screen; keep it awake and unlocked
+          # (same fix as github.com/prateeknot/macos-cloud, macOS 26 runners).
+          sudo pmset -a sleep 0 displaysleep 0 disksleep 0 || true
+          sudo defaults write /Library/Preferences/com.apple.screensaver askForPassword -int 0 || true
+          sudo defaults write /Library/Preferences/com.apple.loginwindow DisableScreenLock -bool true || true
           sudo launchctl enable system/com.apple.screensharing
           sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
           sudo systemsetup -setremotelogin on || sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist
