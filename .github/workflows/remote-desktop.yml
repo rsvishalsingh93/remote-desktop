@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       os:
-        description: macos or windows
+        description: macos (Apple Silicon), macos-intel (bigger screen) or windows
         type: choice
-        options: [macos, windows]
+        options: [macos, macos-intel, windows]
         default: macos
       minutes:
         description: How long to keep the machine on (max 340)
@@ -20,7 +20,7 @@ on:
 
 jobs:
   desktop:
-    runs-on: ${{ inputs.os == 'windows' && 'windows-latest' || 'macos-latest' }}
+    runs-on: ${{ inputs.os == 'windows' && 'windows-latest' || inputs.os == 'macos-intel' && 'macos-26-intel' || 'macos-latest' }}
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
@@ -32,35 +32,16 @@ jobs:
           hostname: gha-${{ inputs.os }}-${{ github.run_id }}
 
       - name: Enable Screen Sharing (macOS)
-        if: inputs.os == 'macos'
+        if: inputs.os != 'windows'
         env:
           RD_PASSWORD: ${{ secrets.RD_PASSWORD }}
-        # Apple: "In macOS 12.1 or later, Screen Sharing can't be enabled by the kickstart command-line tool"
-        # (support.apple.com/guide/remote-desktop/apd8b1c65bd), so a user-name login is refused ("Screen Sharing is not
-        # permitted"). kickstart can still turn on the legacy VNC password, which shares the logged-in desktop (runner).
-        # Same steps as github.com/prateeknot/macos-cloud (macOS 26 runners). VNC uses only the first 8 characters.
+        # Remote screen = RustDesk (direct IP over Tailscale). Why not Apple Screen Sharing: README, "Why".
         run: |
-          sw_vers -productVersion
-          K=/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart
-          VNC_PW="${RD_PASSWORD:0:8}"
-          sudo $K -activate
-          sudo $K -configure -allowAccessFor -allUsers -privs -all
-          sudo $K -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$VNC_PW"
-          # Some macOS builds ignore -setvncpw, so also write the obfuscated settings file (not to the log).
-          printf '%s' "$VNC_PW" | perl -we 'BEGIN { @k = unpack "C*", pack "H*", "1734516E8BA8C5E2FF1C39567390ADCA" }; $_ = <>; chomp; s/^(.{8}).*/$1/; @p = unpack "C*", $_; foreach (@k) { printf "%02X", $_ ^ (shift @p || 0) }; print "\n"' \
-            | sudo tee /Library/Preferences/com.apple.VNCSettings.txt >/dev/null
-          # A headless runner whose display sleeps or locks streams a black screen: keep it awake and unlocked.
-          sudo pmset -a sleep 0 displaysleep 0 disksleep 0 || true
-          sudo defaults write /Library/Preferences/com.apple.screensaver askForPassword -int 0 || true
-          sudo defaults write /Library/Preferences/com.apple.loginwindow DisableScreenLock -bool true || true
-          sudo "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080 2>/dev/null || true
-          sudo $K -restart -agent -console
-          python3 -c "import socket; s=socket.create_connection(('127.0.0.1',5900),10); print('VNC server:', s.recv(12))"
-          echo "console user: $(stat -f%Su /dev/console)"
+          sw_vers -productVersion; uname -m
+          bash mac/rustdesk.sh
           # SSH for commands (key in authorized_keys)
-          sudo systemsetup -setremotelogin on || sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist
-          mkdir -p ~/.ssh && cat authorized_keys >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
-          echo "Connect: Screen Sharing -> vnc://$(tailscale ip -4)  password: first 8 characters of RD_PASSWORD  (ssh runner@$(tailscale ip -4))"
+          mkdir -p ~/.ssh && cat authorized_keys >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+          echo "Connect: RustDesk -> $(tailscale ip -4)  password: RD_PASSWORD  (ssh runner@$(tailscale ip -4))"
 
       - name: Enable Remote Desktop (Windows)
         if: inputs.os == 'windows'
