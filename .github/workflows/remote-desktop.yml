@@ -70,7 +70,7 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          curl -fsSL https://kit-get.jhilmil.workers.dev/stepguide/step-guide.zip -o step-guide.zip
+          curl -fsSL https://get.jhilmillabs.com/stepguide/step-guide.zip -o step-guide.zip
           mkdir -p ~/Desktop/step-guide && unzip -oq step-guide.zip -d ~/Desktop/step-guide
           echo "Step Guide: ~/Desktop/step-guide"
 
