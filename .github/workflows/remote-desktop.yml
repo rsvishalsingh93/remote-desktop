@@ -23,6 +23,8 @@ jobs:
     runs-on: ${{ inputs.os == 'windows' && 'windows-latest' || 'macos-latest' }}
     timeout-minutes: 350
     steps:
+      - uses: actions/checkout@v4
+
       - name: Join Tailscale
         uses: tailscale/github-action@v3
         with:
@@ -39,7 +41,9 @@ jobs:
             -activate -configure -access -on -users runner -privs -all -restart -agent -menu
           sudo launchctl enable system/com.apple.screensharing
           sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
-          echo "Connect: Screen Sharing -> $(tailscale ip -4)  user: runner"
+          sudo systemsetup -setremotelogin on || sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist
+          mkdir -p ~/.ssh && cat authorized_keys >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+          echo "Connect: Screen Sharing -> $(tailscale ip -4)  user: runner  (ssh runner@$(tailscale ip -4))"
 
       - name: Enable Remote Desktop (Windows)
         if: inputs.os == 'windows'
@@ -50,7 +54,17 @@ jobs:
           Set-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 0
           Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'
           Set-LocalUser -Name runneradmin -Password (ConvertTo-SecureString $env:RD_PASSWORD -AsPlainText -Force)
-          Write-Output "Connect: Windows App -> $(tailscale ip -4)  user: runneradmin"
+          # SSH for commands from the Mac (key in authorized_keys); shell = Windows PowerShell like a buyer's.
+          if (-not (Get-Service sshd -ErrorAction SilentlyContinue)) {
+            try { Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 -ErrorAction Stop | Out-Null }
+            catch { choco install openssh -y --no-progress --params '"/SSHServerFeature"' | Out-Null }
+          }
+          Copy-Item authorized_keys C:\ProgramData\ssh\administrators_authorized_keys -Force
+          icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F' | Out-Null
+          New-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -PropertyType String -Force `
+            -Value C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe | Out-Null
+          Set-Service sshd -StartupType Automatic; Start-Service sshd
+          Write-Output "Connect: Windows App -> $(tailscale ip -4)  user: runneradmin  (ssh runneradmin@$(tailscale ip -4))"
 
       - name: Keep the machine on
         shell: bash

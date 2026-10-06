@@ -13,6 +13,7 @@ Open the run log. The step "Enable Screen Sharing" or "Enable Remote Desktop" sh
 - Mac: open Screen Sharing and connect to the address. User: `runner`.
 - Windows: open Windows App and connect to the address. User: `runneradmin`.
 - Password: the `RD_PASSWORD` secret.
+- Commands: `ssh -i ~/.ssh/remote_desktop_ed25519 <user>@<address>` (public key in `authorized_keys`).
 
 ## Stop
 ```
