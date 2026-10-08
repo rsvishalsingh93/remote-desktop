@@ -1,0 +1,17 @@
+#!/bin/bash
+# Copy finished recording parts (C:\ctl\rec\*.mkv) from the Windows test machine to this Mac every 30 s.
+# A part is finished when a newer part exists. Run in the background during a recording: ./recpull <local dir>
+# After `wc recstop`, run `./recpull <local dir> --final` once to copy the last part too.
+set -u; out=$1; mkdir -p "$out"; ip=$(cat ~/.remote-desktop-ip)
+K=(-i "$HOME/.ssh/remote_desktop_ed25519" -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=15)
+pull() {
+  parts=$(ssh "${K[@]}" runneradmin@$ip 'Get-ChildItem C:\ctl\rec\*.mkv | Sort-Object Name | Select -Expand Name' </dev/null 2>/dev/null | tr -d '\r')
+  [ -z "$parts" ] && return
+  [ "${1:-}" = final ] || parts=$(echo "$parts" | sed '$d')   # the newest part is still being written
+  for f in $parts; do
+    [ -s "$out/$f" ] && [ "$f" != "$(echo "$parts" | tail -1)" ] && continue   # only the newest part can still grow
+    scp -q "${K[@]}" "runneradmin@$ip:C:/ctl/rec/$f" "$out/$f.tmp" </dev/null && mv "$out/$f.tmp" "$out/$f" && echo "$(date -u +%H:%M:%S) got $f"
+  done
+}
+if [ "${2:-}" = --final ]; then pull final; exit; fi
+while true; do pull; sleep 30; done

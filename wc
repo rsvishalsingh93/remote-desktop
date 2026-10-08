@@ -1,0 +1,18 @@
+#!/bin/bash
+# Drive the Windows desktop (agent.ps1) over SSH. Address from ~/.remote-desktop-ip (written by winprep.sh).
+#   wc click|dbl|rclick|move <x> <y>     PC pixels (see C:\ctl\screen.txt)
+#   wc scroll <x> <y> <delta>            delta 120 = one notch up, -120 down
+#   wc keys <SendKeys text>              e.g. "{ENTER}", "^l", "hello"
+#   wc paste <text>                      via the clipboard (safe for long text)
+#   wc run <exe> [args]                  start a program on the visible desktop
+#   wc recstart <name> | wc recstop      ffmpeg screen recording in 1-minute parts C:\ctl\rec\<name>-NNN.mkv
+#   (run ./recpull <local dir> in the background at the same time: it copies every finished part to this Mac)
+#   wc shot [file.png]                   screenshot of the desktop to this Mac
+ip=$(cat ~/.remote-desktop-ip); c=$1; shift
+s() { ssh -i ~/.ssh/remote_desktop_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=15 runneradmin@$ip "$@" </dev/null; }
+w() { s "[IO.File]::WriteAllText('$1',[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$(printf '%s' "$2" | base64)')))"; }
+case $c in
+  paste) w 'C:\ctl\clip.txt' "$*"; w 'C:\ctl\cmd.txt' "paste";;
+  shot) f=${1:-shot.png}; w 'C:\ctl\cmd.txt' "shot"; sleep 1.5; scp -q -i ~/.ssh/remote_desktop_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR runneradmin@$ip:C:/ctl/shot.png "$f" && echo "$f";;
+  *) w 'C:\ctl\cmd.txt' "$c $*";;
+esac

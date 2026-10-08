@@ -68,7 +68,26 @@ Mac minutes are limited and a Mac costs much more than Windows. Learned on 8 Oct
 - **RustDesk's REC button** saves on the viewer's own Mac, in `~/Movies/RustDesk/` (RustDesk → Settings → General →
   Recording), so the file stays when the test machine ends. An `ffmpeg` recording made on the test machine is lost
   when the run ends: copy it off first (`scp runner@<address>:<file> .`).
+- **A recording made on the test machine is lost when the run ends** (8 Oct 2026, Windows): the run hit its time limit
+  before the 45-minute install recording was copied off. Fixed: `wc recstart` now records in 1-minute parts and
+  `./recpull <dir>` (run it in the background) copies each finished part to this Mac; after `wc recstop` run
+  `./recpull <dir> --final`. A sudden end loses 1 minute at most. Still stop 10 minutes before the stop time.
 - Keep license keys and passwords out of recordings, or blur them before anyone else sees the video.
+
+## Windows over SSH (for AI agents; tested 8 Oct 2026)
+- **Prep in one step:** `./winprep.sh <address> [--no-chrome]`. It makes Tailscale *unattended* with auto-update off
+  (without unattended, closing the Tailscale tray app on the PC drops the machine off the network, and you cannot get
+  it back), installs ffmpeg, can remove Chrome (a buyer-like PC), and starts `windows/agent.ps1` on the visible desktop.
+- **Why a helper:** a program started over SSH runs in a hidden session (no window, nothing to record). A scheduled task
+  with `-LogonType Interactive` starts it on the visible desktop with no password. `agent.ps1` uses this: it reads
+  `C:\ctl\cmd.txt` and clicks, types, pastes, starts programs, takes screenshots and records the screen.
+- **Drive it from the Mac:** `./wc shot s.png` (look), `./wc click x y` (PC pixels as in the screenshot), `./wc keys "{ENTER}"`,
+  `./wc paste "<text>"`, `./wc run <exe>`, `./wc recstart <name>` / `./wc recstop` (ffmpeg gdigrab → `C:\ctl\<name>.mkv`,
+  copy it off with scp before the run ends). The screen size changes when someone connects with Windows App.
+- Someone must sign in once with Windows App (password = RD_PASSWORD; agents may not type it).
+- **Never close the "Default" tab/window** in Windows Terminal: it is the GitHub runner. Closing it ends the machine.
+  Windows Terminal's "Close all tabs?" box closes it too: click Cancel.
+- The Start-menu search is slow: type, wait 2-3 s, look, then press Enter (fast typing opened the firewall app).
 
 ## When something fails
 `gh run view <run-id> -R rsvishalsingh93/remote-desktop --log-failed`, then read the docs above before changing the
