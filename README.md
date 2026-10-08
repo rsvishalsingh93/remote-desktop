@@ -90,6 +90,10 @@ workflow. Write what you found in this section.
   Fixed in `mac/rustdesk.sh`: `enable-hwcodec = 'N'` and `codec-preference = 'vp9'` in `RustDesk2.toml`. On a running
   machine: add both lines under `[options]`, `pkill -x RustDesk; open -a RustDesk`, reconnect. Restarting the
   RustDesk app on your own Mac does not help.
+- **"Failed to connect to <address>:21118: Please try later" in the middle of a session** (8 Oct 2026): RustDesk on the
+  test Mac had quit (no process, no crash report; most likely a ⌘Q typed while its own window was in front). Now
+  `mac/rustdesk.sh` runs a watchdog that starts it again within 5 s (times in `/tmp/rd-restarts.log`): wait a few
+  seconds and connect again. On a machine without the watchdog: `ssh … 'open -a RustDesk'`.
 - **A macOS box "… is requesting to bypass the system private window picker …"** waits on the screen after the first
   screen capture by RustDesk, sshd or ffmpeg. Until someone clicks **Allow**, that app gets no picture. Look at the
   screen over SSH (`screencapture -x`, see below) and click Allow (`cliclick c:<x>,<y>`). The button under it is "Open

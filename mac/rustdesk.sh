@@ -82,3 +82,8 @@ sudo pmset -a sleep 0 displaysleep 0 disksleep 0 || true
 open -a RustDesk
 for _ in $(seq 1 30); do nc -z 127.0.0.1 $PORT 2>/dev/null && break; sleep 2; done
 nc -z 127.0.0.1 $PORT && echo "RustDesk is listening on $PORT" || { echo "::error::RustDesk is not listening on $PORT"; exit 1; }
+# Watchdog: a Cmd+Q typed in the session quits RustDesk on this Mac (its window is the front app) and the viewer gets
+# "Failed to connect ... Please try later" (8 Oct 2026). Start it again within 5 s; restarts go to /tmp/rd-restarts.log.
+nohup bash -c 'while true; do pgrep -x RustDesk >/dev/null || { date -u +%T >> /tmp/rd-restarts.log; open -a RustDesk; }; sleep 5; done' \
+  >/dev/null 2>&1 < /dev/null &
+
