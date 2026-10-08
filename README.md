@@ -70,5 +70,16 @@ workflow. Write what you found in this section.
   RustDesk as the official `--server` LaunchAgent plus root `--service` LaunchDaemon (skyro777's setup). No documented
   cause found. Use the keyboard and menus: open apps with Finder → Go or ⌘ Space; close a window ⌘ W; quit ⌘ Q;
   cancel Esc; switch ⌘ Tab; or over SSH: `open -a Terminal`.
-- **No screenshots over SSH on the Mac**: `screencapture` says "could not create image from display" (the screen
-  permission belongs to the workflow's `/bin/bash`, not to sshd). Take screenshots in a workflow step instead.
+- **Screenshots, clicks and recording over SSH on the Mac** (solved 8 Oct 2026). Plain `screencapture` over SSH says
+  "could not create image from display": the screen permission belongs to the workflow's `/bin/bash`, not to sshd.
+  Fix: over SSH, add TCC.db rows (same SQL as `mac/rustdesk.sh` step 3, client type 1) for
+  `/usr/libexec/sshd-keygen-wrapper`, `/usr/libexec/sshd-session`, `/bin/bash`, `/bin/zsh` and the Homebrew `python3`/`ffmpeg`
+  with kTCCServiceScreenCapture, Accessibility, ListenEvent, PostEvent; `sudo killall tccd`. Then `screencapture -x`,
+  `brew install cliclick ffmpeg` (clicks/keys: `cliclick c:x,y`, `kd:cmd t:v ku:cmd`) and recording
+  (`ffmpeg -f avfoundation -capture_cursor 1 -framerate 30 -i "0:none" …`, stop with `kill -INT <pid>`) all work.
+  The first recording shows one "bypass the private window picker" box: click Allow once. Typing long text with
+  `cliclick t:` sometimes triggers "show desktop" (windows slide off; click the wallpaper to bring them back): put the
+  text on the clipboard with `pbcopy` and paste instead. To read a page in Chrome from SSH: quit Chrome, set
+  `browser.allow_javascript_apple_events: true` in `~/Library/Application Support/Google/Chrome/Default/Preferences`,
+  reopen, then `osascript` → `execute tab … javascript` (the menu item can't be clicked by automation; the first call
+  shows one "control Google Chrome" box: Allow).
