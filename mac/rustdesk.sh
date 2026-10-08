@@ -21,6 +21,8 @@ xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
 
 echo "== 2. config: direct IP, fixed password, accept without a click"
 # Server keys must sit in an [options] table, or RustDesk ignores them (skyro777 mac_02).
+# enable-hwcodec N: the VM has no real GPU; with it on, RustDesk picks hevc_videotoolbox, every frame fails
+# ("encode fail: no valid frame") and the viewer sees a green screen (8 Oct 2026). VP9 is software.
 mkdir -p "$PREFS"
 printf "id = '%s'\npassword = '%s'\n" "$(date +%s | tail -c 10)" "$RD_PASSWORD" > "$PREFS/RustDesk.toml"
 cat > "$PREFS/RustDesk2.toml" <<EOF
@@ -34,6 +36,8 @@ allow-keyboard = 'Y'
 allow-mouse = 'Y'
 allow-clipboard = 'Y'
 allow-file-transfer = 'Y'
+enable-hwcodec = 'N'
+codec-preference = 'vp9'
 EOF
 sudo mkdir -p /var/root/Library/Preferences/com.carriez.RustDesk
 sudo cp "$PREFS"/RustDesk.toml "$PREFS"/RustDesk2.toml /var/root/Library/Preferences/com.carriez.RustDesk/

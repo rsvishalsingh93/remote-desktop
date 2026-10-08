@@ -56,6 +56,20 @@ A run also stops by itself after the minutes you asked for. Hosted runners are f
   "Enable …" step to succeed and reads the address of `gha-<os>-<run id>` from `tailscale status`.
 - **Keep-alive loop of 15 s sleeps.** One long `sleep` ignores a cancel on Windows and the run stays "in progress".
 
+## Test session checklist (for people and AI agents)
+Mac minutes are limited and a Mac costs much more than Windows. Learned on 8 Oct 2026:
+- **Ask for 30-60 minutes**, not hours, and start just before someone can join. Stop the run when nobody is testing
+  (the agent doing other work counts as nobody). **Never stop a run the owner may still use without asking.**
+- **Before you hand over:** from your Mac, `nc -z -G 5 <address> 21118` must succeed. Then connect once, or look at the
+  screen over SSH (below), and check there is no waiting macOS box. Tell the owner the address and the exact stop time
+  in UTC.
+- **A buyer-like Mac without Chrome:** the image has Google Chrome and Chrome for Testing. To remove both:
+  `sudo rm -rf "/Applications/Google Chrome.app" "/Applications/Google Chrome for Testing.app" ~/Library/Application\ Support/Google/Chrome ~/Library/Caches/Google/Chrome ~/Library/Preferences/com.google.Chrome.plist /Library/Google/GoogleSoftwareUpdate ~/Library/Google/GoogleSoftwareUpdate`
+- **RustDesk's REC button** saves on the viewer's own Mac, in `~/Movies/RustDesk/` (RustDesk → Settings → General →
+  Recording), so the file stays when the test machine ends. An `ffmpeg` recording made on the test machine is lost
+  when the run ends: copy it off first (`scp runner@<address>:<file> .`).
+- Keep license keys and passwords out of recordings, or blur them before anyone else sees the video.
+
 ## When something fails
 `gh run view <run-id> -R rsvishalsingh93/remote-desktop --log-failed`, then read the docs above before changing the
 workflow. Write what you found in this section.
@@ -70,6 +84,16 @@ workflow. Write what you found in this section.
   RustDesk as the official `--server` LaunchAgent plus root `--service` LaunchDaemon (skyro777's setup). No documented
   cause found. Use the keyboard and menus: open apps with Finder → Go or ⌘ Space; close a window ⌘ W; quit ⌘ Q;
   cancel Esc; switch ⌘ Tab; or over SSH: `open -a Terminal`.
+- **RustDesk shows a solid green screen** (8 Oct 2026, Apple Silicon `macos`). Connection, mouse and keyboard are fine,
+  but the picture is green. The RustDesk log (`~/Library/Logs/RustDesk/RustDesk_rCURRENT.log`) says `encoder: H265`,
+  `hevc_videotoolbox` and then `encode fail: no valid frame`: the VM has no real GPU, so hardware encoding fails.
+  Fixed in `mac/rustdesk.sh`: `enable-hwcodec = 'N'` and `codec-preference = 'vp9'` in `RustDesk2.toml`. On a running
+  machine: add both lines under `[options]`, `pkill -x RustDesk; open -a RustDesk`, reconnect. Restarting the
+  RustDesk app on your own Mac does not help.
+- **A macOS box "… is requesting to bypass the system private window picker …"** waits on the screen after the first
+  screen capture by RustDesk, sshd or ffmpeg. Until someone clicks **Allow**, that app gets no picture. Look at the
+  screen over SSH (`screencapture -x`, see below) and click Allow (`cliclick c:<x>,<y>`). The button under it is "Open
+  System Settings": a click that lands on the wrong box opens Settings (close it: `osascript -e 'quit app "System Settings"'`).
 - **Screenshots, clicks and recording over SSH on the Mac** (solved 8 Oct 2026). Plain `screencapture` over SSH says
   "could not create image from display": the screen permission belongs to the workflow's `/bin/bash`, not to sshd.
   Fix: over SSH, add TCC.db rows (same SQL as `mac/rustdesk.sh` step 3, client type 1) for
