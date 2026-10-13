@@ -74,6 +74,24 @@ Mac minutes are limited and a Mac costs much more than Windows. Learned on 8 Oct
   `./recpull <dir> --final`. A sudden end loses 1 minute at most. Still stop 10 minutes before the stop time.
 - Keep license keys and passwords out of recordings, or blur them before anyone else sees the video.
 
+## Buyer mode: test like a buyer's laptop, not like a GitHub server (Windows, 13 Oct 2026)
+A GitHub test machine is a developer's server: Windows Server, administrator with no UAC prompts, PowerShell scripts
+allowed, Python, Git, Node and Chrome installed, user `runneradmin`. A buyer's laptop is none of these. Every test
+passed here while the first real laptop crashed: uv's installer refuses the home-Windows default script policy
+'Restricted' and its `exit 1` closed the buyer's PowerShell window. **Test installers in buyer mode.**
+- `./winprep.sh <address> --buyer`: script policy Restricted (LocalMachine); Python, Git, Node and uv folders off PATH
+  (WindowsApps stays: every Windows has its Store python.exe); a normal user `Test Bùyer` (no administrator rights,
+  a space and a non-English letter in the name; password printed and in `C:\ctl\buyer.txt`); the desktop helper
+  (`agent.ps1`) runs as that user after it signs in with Windows App.
+- `./wbuyer '<powershell>'`: PowerShell over SSH as that user, with the machine's policy (no `-ExecutionPolicy` flag).
+  Run the buyer's command exactly as given: `./wbuyer "irm '<install command URL>' | iex"`.
+- **What buyer mode cannot copy:** Windows 11 Home (it stays Windows Server), UAC prompts (off on the runner; changing it
+  needs a restart), SmartScreen and Smart App Control, Windows on ARM, another Windows language, Python that the
+  image registered in the registry (uv can still find it). Test those on a real PC.
+- **SSH differs from a window:** an SSH sign-in is a network logon, so WMI refuses a normal user (`Get-CimInstance` →
+  Access denied; a laptop user is allowed), and with no console PowerShell prints every message twice (text and
+  `#< CLIXML`). Read results with that in mind; the final check is a signed-in desktop or a real PC.
+
 ## Windows over SSH (for AI agents; tested 8 Oct 2026)
 - **Prep in one step:** `./winprep.sh <address> [--no-chrome]`. It makes Tailscale *unattended* with auto-update off
   (without unattended, closing the Tailscale tray app on the PC drops the machine off the network, and you cannot get

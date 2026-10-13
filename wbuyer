@@ -1,0 +1,15 @@
+#!/bin/bash
+# Run PowerShell over SSH as the buyer-mode user: ./wbuyer '<powershell code>'   (after ./winprep.sh <address> --buyer)
+# That user has no administrator rights and gets the machine's script policy (no -ExecutionPolicy flag), like a buyer.
+# Exit code = PowerShell's. Note: an SSH sign-in is a network logon, so WMI refuses this user (a laptop user is allowed).
+k=(-i ~/.ssh/remote_desktop_ed25519 -o IdentitiesOnly=yes); o=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=15)
+ip=$(cat ~/.remote-desktop-ip)
+if [ -n "${WBUYER_ASKPASS:-}" ]; then   # ssh calls this script again for the password
+  ssh "${k[@]}" "${o[@]}" runneradmin@$ip 'powershell -NoProfile -Command "(Get-Content C:\ctl\buyer.txt -Encoding UTF8)[1]"' </dev/null | tr -d '\r'; exit
+fi
+user="Test B$(printf '\xc3\xb9')yer"   # the name prep.ps1 gives it
+enc=$(printf '%s' "$1" | iconv -f UTF-8 -t UTF-16LE | base64)
+WBUYER_ASKPASS=1 SSH_ASKPASS="$0" SSH_ASKPASS_REQUIRE=force DISPLAY=:0 ssh "${o[@]}" -o PubkeyAuthentication=no \
+  -o PreferredAuthentications=password,keyboard-interactive "$user@$ip" "powershell -NoProfile -EncodedCommand $enc" </dev/null 2>&1 |
+  LC_ALL=C tr -d '\r' | LC_ALL=C grep -v -e '^#< CLIXML' -e '^<Objs '
+exit "${PIPESTATUS[0]}"
