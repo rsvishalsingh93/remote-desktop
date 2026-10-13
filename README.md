@@ -88,6 +88,12 @@ passed here while the first real laptop crashed: uv's installer refuses the home
 - **What buyer mode cannot copy:** Windows 11 Home (it stays Windows Server), UAC prompts (off on the runner; changing it
   needs a restart), SmartScreen and Smart App Control, Windows on ARM, another Windows language, Python that the
   image registered in the registry (uv can still find it). Test those on a real PC.
+- **Mac:** `scp mac/buyer.sh runner@<address>:/tmp/ && ssh runner@<address> bash /tmp/buyer.sh` hides Xcode and the
+  Command Line Tools (a buyer's Mac has neither; `/usr/bin/git` is then Apple's stand-in). Run the install in Terminal on
+  the screen (`open -a Terminal x.command`, not over SSH) with the buyer's PATH `/usr/bin:/bin:/usr/sbin:/sbin`
+  (Homebrew stays installed for cliclick/ffmpeg). Found this way (13 Oct 2026): Apple's install window opens *behind*
+  Terminal. Clicks over SSH: `osascript -e 'tell application "System Events" to click at {x, y}'` after granting the
+  SSH processes Accessibility in TCC.db (see "Screenshots, clicks and recording over SSH on the Mac").
 - **SSH differs from a window:** an SSH sign-in is a network logon, so WMI refuses a normal user (`Get-CimInstance` →
   Access denied; a laptop user is allowed), and with no console PowerShell prints every message twice (text and
   `#< CLIXML`). Read results with that in mind; the final check is a signed-in desktop or a real PC.
