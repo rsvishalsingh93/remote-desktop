@@ -69,8 +69,8 @@ jobs:
         continue-on-error: true
         run: |
           curl -fsSL https://get.jhilmillabs.com/stepguide/step-guide.zip -o step-guide.zip
-          mkdir -p ~/Desktop/step-guide && unzip -oq step-guide.zip -d ~/Desktop/step-guide
-          echo "Step Guide: ~/Desktop/step-guide"
+          mkdir -p ~/Desktop/Projects/step-guide && unzip -oq step-guide.zip -d ~/Desktop/Projects/step-guide
+          echo "Step Guide: ~/Desktop/Projects/step-guide"
 
       - name: Keep the machine on
         shell: bash
